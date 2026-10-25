@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#10182b">
+<title>DIAGONAL DUO</title>
+<style>
+:root{color-scheme:dark;--bg:#10182b;--panel:#19243c;--line:#33415f;--blue:#62d9ff;--red:#ff758a;--ink:#f3f6ff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#202e4b,var(--bg) 65%);color:var(--ink);font-family:system-ui,-apple-system,sans-serif;min-height:100vh}
+main{max-width:1000px;margin:auto;padding:18px 14px 26px}header{text-align:center;margin:4px 0 14px}h1{font-size:clamp(27px,6vw,44px);letter-spacing:.09em;margin:0;font-weight:900}h1 span{color:var(--blue)}.sub{color:#aab7d3;margin:4px 0 0;font-size:13px;letter-spacing:.12em}
+.hud{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:10px 0}.score{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px 12px;font-weight:800}.score.blue{color:var(--blue)}.score.red{color:var(--red);text-align:right}.timer{font-variant-numeric:tabular-nums;font-size:20px;font-weight:900;min-width:60px;text-align:center}
+.arena-wrap{border:1px solid #3a4b6e;border-radius:16px;overflow:hidden;background:#111b30;box-shadow:0 16px 45px #0004}canvas{display:block;width:100%;height:auto;touch-action:none}
+.status{margin:10px 0 14px;text-align:center;min-height:24px;color:#c6d2ec;font-size:14px}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px}.team{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}.team h2{font-size:15px;margin:0 0 4px}.team.blue h2{color:var(--blue)}.team.red h2{color:var(--red)}.team p{font-size:12px;color:#aab7d3;margin:0 0 10px;line-height:1.5}
+.pad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.key{background:#263451;border:1px solid #425476;color:white;border-radius:10px;padding:12px 4px;font-size:13px;font-weight:800;min-height:46px;touch-action:none;user-select:none}.key:active,.key.down{background:#455b82;transform:scale(.98)}.blue .key{border-color:#397f9c}.red .key{border-color:#a64b61}
+.actions{display:flex;gap:8px;justify-content:center;margin:14px 0}.action{border:1px solid #455777;background:#202d47;color:white;border-radius:10px;padding:10px 15px;font-weight:800}.action.primary{background:#d9f6ff;color:#102137;border-color:#d9f6ff}
+.note{font-size:12px;color:#92a1c0;line-height:1.6;margin-top:12px}.how{margin-top:18px;padding:14px 16px;background:#18233a;border-radius:12px;border:1px solid var(--line)}.how h2{font-size:15px;margin:0 0 6px}.how p{font-size:13px;line-height:1.7;color:#c1cde4;margin:0}
+@media(max-width:520px){main{padding:12px 9px 22px}.team{padding:9px}.key{font-size:11px;padding:10px 2px;min-height:42px}.controls{gap:7px}.score{padding:8px;font-size:13px}.timer{font-size:17px;min-width:47px}}
+</style>
+</head>
+<body><main>
+<header><h1>DIAGONAL <span>DUO</span></h1><p class="sub">TWO PLAYERS. ONE BODY. FOUR LEGS.</p></header>
+<div class="hud"><div class="score blue">CYAN <span id="scoreB">0</span></div><div class="timer" id="timer">60</div><div class="score red">CORAL <span id="scoreR">0</span></div></div>
+<div class="arena-wrap"><canvas id="game" width="900" height="510" aria-label="対戦アリーナ"></canvas></div>
+<div class="status" id="status">キックで相手をリングの外へ！</div>
+<div class="controls">
+<section class="team blue"><h2>CYAN TEAM · WASD</h2><p>各キーで対応する脚を蹴る。連打で移動＆相手を押し出そう。</p><div class="pad">
+<button class="key" data-key="w">↑ W<br><small>上脚</small></button><button class="key" data-key=" " >KICK</button><button class="key" data-key="ArrowUp">↑</button>
+<button class="key" data-key="a">← A<br><small>左脚</small></button><button class="key" data-key="s">↓ S<br><small>下脚</small></button><button class="key" data-key="d">D →<br><small>右脚</small></button>
+</div></section>
+<section class="team red"><h2>CORAL TEAM · ARROWS</h2><p>矢印キーで脚を蹴る。スマホでは下のボタンをタップ！</p><div class="pad">
+<button class="key" data-key="ArrowUp">↑ 上脚</button><button class="key" data-key="ArrowLeft">← 左脚</button><button class="key" data-key="ArrowRight">右脚 →</button>
+<button class="key" data-key="ArrowDown">↓ 下脚</button><button class="key" data-key="Enter">KICK</button><button class="key" data-key="r">再戦 R</button>
+</div></section>
+</div>
+<div class="actions"><button class="action primary" id="start">▶ スタート / 再スタート</button><button class="action" id="sound">サウンド：OFF</button></div>
+<div class="how"><h2>遊び方</h2><p>左右のチームは、それぞれ4本脚のキャラクターを操作します。キーを押すとその方向の脚で地面を蹴り、反動で本体が動きます。相手にぶつかると吹き飛ばせます。60秒終了時にリング内に残っているチームが勝ち。落下させれば即勝利！<br>※現在は操作感を試すためのローカル対戦プロトタイプです。別々の端末から遊べるオンライン通信は、次の開発段階で追加します。</p></div>
+<p class="note">Prototype 0.1 · HTML Canvas · スマートフォン／PC対応</p>
+</main>
+<script>
+(()=>{
+const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d');
+const W=900,H=510,cx=W/2,cy=H/2,arena={x:70,y:45,w:760,h:420};
+const keys=new Set();let running=false,remaining=60,last=0,raf=0,scoreB=0,scoreR=0,sound=false,audio;
+const status=document.querySelector('#status');
+const teams=[
+ {name:'CYAN',color:'#62d9ff',dark:'#1d8db6',x:300,y:255,vx:0,vy:0,angle:0,legs:[0,0,0,0],kick:[0,0,0,0],out:false,respawn:0},
+ {name:'CORAL',color:'#ff758a',dark:'#d84663',x:600,y:255,vx:0,vy:0,angle:Math.PI,legs:[0,0,0,0],kick:[0,0,0,0],out:false,respawn:0}
+];
+function beep(freq=190,dur=.06){if(!sound)return;try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();const o=audio.createOscillator(),g=audio.createGain();o.frequency.value=freq;g.gain.value=.045;o.connect(g);g.connect(audio.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+dur);o.stop(audio.currentTime+dur)}catch(e){}}
+function draw(){
+ ctx.clearRect(0,0,W,H);
+ // arena background
+ ctx.fillStyle='#121d33';ctx.fillRect(0,0,W,H);
+ ctx.save();ctx.strokeStyle='#263653';ctx.lineWidth=1;
+ for(let x=arena.x;x<arena.x+arena.w;x+=30){ctx.beginPath();ctx.moveTo(x,arena.y);ctx.lineTo(x,arena.y+arena.h);ctx.stroke()}
+ for(let y=arena.y;y<arena.y+arena.h;y+=30){ctx.beginPath();ctx.moveTo(arena.x,y);ctx.lineTo(arena.x+arena.w,y);ctx.stroke()}
+ ctx.restore();
+ ctx.fillStyle='#202d47';ctx.fillRect(arena.x,arena.y,arena.w,arena.h);
+ ctx.strokeStyle='#536687';ctx.lineWidth=5;ctx.strokeRect(arena.x,arena.y,arena.w,arena.h);
+ ctx.setLineDash([8,9]);ctx.strokeStyle='#405271';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx,arena.y+12);ctx.lineTo(cx,arena.y+arena.h-12);ctx.stroke();ctx.setLineDash([]);
+ // danger zones
+ const grd=ctx.createLinearGradient(arena.x,0,arena.x+arena.w,0);grd.addColorStop(0,'#ff758a10');grd.addColorStop(.5,'#ffffff00');grd.addColorStop(1,'#ff758a10');ctx.fillStyle=grd;ctx.fillRect(arena.x,arena.y,arena.w,arena.h);
+ teams.forEach((t,ti)=>drawTeam(t,ti));
+ if(!running){ctx.fillStyle='#09101dcc';ctx.fillRect(0,0,W,H);ctx.textAlign='center';ctx.fillStyle='#f3f6ff';ctx.font='900 38px system-ui';ctx.fillText(remaining===0?'TIME UP!':'READY?',cx,cy-10);ctx.fillStyle='#aebdd9';ctx.font='16px system-ui';ctx.fillText(remaining===0?'「スタート / 再スタート」で再戦':'ボタンを押して試合開始',cx,cy+27)}
+}
+function drawTeam(t,ti){
+ if(t.out){ctx.globalAlpha=.4;ctx.fillStyle=t.color;ctx.font='bold 20px system-ui';ctx.textAlign='center';ctx.fillText('OUT',t.x,t.y);ctx.globalAlpha=1;return}
+ ctx.save();ctx.translate(t.x,t.y);
+ // shadow
+ ctx.fillStyle='#0005';ctx.beginPath();ctx.ellipse(3,7,38,25,0,0,Math.PI*2);ctx.fill();
+ // legs in four cardinal directions
+ const dirs=[[0,-1],[1,0],[0,1],[-1,0]];
+ dirs.forEach((d,i)=>{
+  const kick=t.kick[i]||0,ext=kick*18,dx=d[0],dy=d[1];
+  ctx.save();ctx.translate(dx*(23+ext),dy*(23+ext));ctx.rotate(Math.atan2(dy,dx)+Math.PI/2);
+  ctx.lineCap='round';ctx.strokeStyle=t.dark;ctx.lineWidth=15;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-27);ctx.stroke();
+  ctx.strokeStyle=t.color;ctx.lineWidth=11;ctx.beginPath();ctx.moveTo(0,-2);ctx.lineTo(0,-25);ctx.stroke();
+  ctx.fillStyle=t.color;ctx.beginPath();ctx.ellipse(0,-29,10,13,0,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+ });
+ // body
+ ctx.fillStyle=t.dark;ctx.beginPath();ctx.arc(0,0,25,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle=t.color;ctx.beginPath();ctx.arc(0,0,20,0,Math.PI*2);ctx.fill();
+ // face points toward opponent
+ const face=ti===0?1:-1;
+ ctx.fillStyle='#102037';ctx.beginPath();ctx.arc(face*7,-5,3.5,0,Math.PI*2);ctx.arc(face*7,6,3.5,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle='#102037';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-8,0);ctx.lineTo(0,0);ctx.stroke();
+ ctx.restore();
+ // label
+ ctx.textAlign='center';ctx.font='bold 13px system-ui';ctx.fillStyle=t.color;ctx.fillText(t.name,t.x,t.y-47);
+}
+function kick(t,i,dir){
+ if(!running||t.out)return;
+ t.kick[i]=1;
+ const power=dir===1?4.6:3.8;
+ const d=[[0,-1],[1,0],[0,1],[-1,0]][i];
+ t.vx-=d[0]*power;t.vy-=d[1]*power;
+ beep(140+i*65,.05);
+}
+const held=new Set();
+function keyDown(k){if(held.has(k))return;held.add(k);
+ if(k==='r'||k==='R'){reset();return}
+ if(k===' '||k==='Enter'){kick(teams[k===' '?'0':'1']||teams[0],1,1);return}
+ const mapB={w:0,d:1,s:2,a:3},mapR={ArrowUp:0,ArrowRight:1,ArrowDown:2,ArrowLeft:3};
+ if(k in mapB)kick(teams[0],mapB[k],1);
+ if(k in mapR)kick(teams[1],mapR[k],1);
+}
+function keyUp(k){held.delete(k)}
+window.addEventListener('keydown',e=>{let k=e.key;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(k))e.preventDefault();keyDown(k)});
+window.addEventListener('keyup',e=>keyUp(e.key));
+document.querySelectorAll('[data-key]').forEach(b=>{
+ const k=b.dataset.key;
+ const down=e=>{e.preventDefault();b.classList.add('down');keyDown(k)};
+ const up=e=>{e.preventDefault();b.classList.remove('down');keyUp(k)};
+ b.addEventListener('pointerdown',down);b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('pointerleave',e=>{if(e.buttons===0)up(e)});
+});
+function reset(){teams[0].x=300;teams[0].y=255;teams[0].vx=teams[0].vy=0;teams[0].out=false;teams[0].kick=[0,0,0,0];teams[1].x=600;teams[1].y=255;teams[1].vx=teams[1].vy=0;teams[1].out=false;teams[1].kick=[0,0,0,0];remaining=60;running=true;last=performance.now();status.textContent='試合開始！ 相手をリングの外へ！';document.querySelector('#timer').textContent='60';draw();if(raf)cancelAnimationFrame(raf);raf=requestAnimationFrame(loop)}
+function finish(winner){running=false;if(winner===0){scoreB++;document.querySelector('#scoreB').textContent=scoreB;status.textContent='CYAN TEAM の勝利！';}else if(winner===1){scoreR++;document.querySelector('#scoreR').textContent=scoreR;status.textContent='CORAL TEAM の勝利！';}else status.textContent='時間切れ！ 引き分け！';document.querySelector('#timer').textContent='0';draw()}
+function loop(now){if(!running)return;const dt=Math.min((now-last)/16.67,2);last=now;remaining=Math.max(0,remaining-dt/60);document.querySelector('#timer').textContent=Math.ceil(remaining);
+ teams.forEach((t,i)=>{if(t.out)return;t.x+=t.vx*dt;t.y+=t.vy*dt;t.vx*=Math.pow(.985,dt);t.vy*=Math.pow(.985,dt);t.kick=t.kick.map(v=>Math.max(0,v-.065*dt));
+  // Ring-out threshold
+  if(t.x<arena.x-25||t.x>arena.x+arena.w+25||t.y<arena.y-25||t.y>arena.y+arena.h+25){t.out=true;beep(90,.2);finish(1-i);return}
+ });
+ const a=teams[0],b=teams[1];
+ if(!a.out&&!b.out){const dx=b.x-a.x,dy=b.y-a.y,dist=Math.hypot(dx,dy)||1;if(dist<58){const nx=dx/dist,ny=dy/dist,force=(58-dist)*.11+1.3;a.vx-=nx*force;b.vx+=nx*force;a.vy-=ny*force;b.vy+=ny*force;}}
+ if(remaining<=0){finish(0);return}draw();raf=requestAnimationFrame(loop)}
+document.querySelector('#start').addEventListener('click',reset);
+document.querySelector('#sound').addEventListener('click',e=>{sound=!sound;e.currentTarget.textContent='サウンド：'+(sound?'ON':'OFF');if(sound)beep(400,.08)});
+draw();
+})();
+</script></body></html>
